@@ -1,0 +1,4 @@
+
+function validarFormularios(req,res){
+
+}
