@@ -1,0 +1,39 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.App{
+  display: flex;
+  justify-content: space-around;
+  border: 2px solid black;
+}
+
+.mainform{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  border: 1px solid orange;
+  width: 600px;
+  margin: 20px 10px;
+}
+
+.product_form{
+  display: flex;
+  padding: 30px;
+  border: 1px solid red;
+  width: 450px;
+  margin: 20px 5px;
+  flex-wrap: wrap;
+}
+
+.product_form form{
+  border: 1px solid green;
+  padding: 5px 0;
+  margin-bottom: 20px;
+}
+.boton{
+  display: block;
+}
