@@ -38,6 +38,13 @@ function App() {
 
   const manejarValidacion = (event) => {
     event.preventDefault();
+    if(cantidadProductos <=0){
+      Swal.fire({
+        icon:"error",
+        title:"Error",
+        text:"Debe ingresar un numero mayor a 0"
+      })
+    }
     // Obtenemos todos los elementos del formulario excepto los botones de envío
     const inputs = [...event.target.elements].filter(element => element.type !== 'submit');
     // Verificar que ningún campo esté vacío
@@ -79,7 +86,7 @@ function App() {
           <label htmlFor='fecha'>Fecha Actual</label>
           <input type='date' id='fecha' name='fecha' required />
 
-          <label htmlFor='nompersona'>Nombre del repartidor</label>
+          <label htmlFor='nompersona'>Nombre del reportador</label>
           <input 
             type='text' 
             id='nompersona' 
@@ -110,7 +117,7 @@ function App() {
           {productos.map((producto, index) => (
             <div className='product_form' key={index}>
               <form onSubmit={(e) => manejarSubmit(e, index)}>
-                <label htmlFor={`nombre-${index}`}>Nombre del Producto</label>
+                <label htmlFor={`nombre-${index}`}>Nombre del Producto {index+1}</label>
                 <input 
                   type='text' 
                   id={`nombre-${index}`}
