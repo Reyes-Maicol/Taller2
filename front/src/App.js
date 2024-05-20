@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import Swal from 'sweetalert2';
 
 function App() {
   const [cantidadProductos, setCantidadProductos] = useState(0);
   const [productos, setProductos] = useState([]);
   const [mostrarFormularios, setMostrarFormularios] = useState(false);
+  const [todosLosCamposLlenos, setTodosLosCamposLlenos] = useState(false);
+
+  useEffect(() => {
+    // Verificar si todos los campos están llenos
+    const todosLlenos = productos.every(producto => producto.nombre && producto.fechaVencimiento && producto.proveedor);
+    setTodosLosCamposLlenos(todosLlenos);
+  }, [productos]);
 
   const manejarCambioCantidad = (event) => {
     const cantidad = parseInt(event.target.value, 10) || 0;
     setCantidadProductos(cantidad);
   };
 
-  const manejarCambioProducto = (index, event) => {
-    const { name, value } = event.target;
+  const validarNombre = (nombre) => {
+    // Permitir letras (mayúsculas y minúsculas), espacios y cadena vacía
+    return /^[a-zA-Z\s]*$/.test(nombre);
+  };
+
+  const manejarCambioProducto = (index, name, value) => {
+    // Si el campo es 'nombre' o 'nompersona' o 'proveedor', validamos que solo contenga letras
+    if (name === 'nombre' || name === 'nompersona' || name === 'proveedor') {
+      if (!validarNombre(value)) {
+        return; // Si no es válido, no actualizamos el estado
+      }
+    }
     const nuevosProductos = [...productos];
     nuevosProductos[index][name] = value;
     setProductos(nuevosProductos);
@@ -20,76 +38,111 @@ function App() {
 
   const manejarValidacion = (event) => {
     event.preventDefault();
+    // Obtenemos todos los elementos del formulario excepto los botones de envío
+    const inputs = [...event.target.elements].filter(element => element.type !== 'submit');
+    // Verificar que ningún campo esté vacío
+    const inputsValidos = inputs.every(input => input.value.trim() !== '');
+    if (!inputsValidos) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Por favor complete todos los campos.'
+      });
+      return;
+    }
     setMostrarFormularios(true);
     setProductos(Array.from({ length: cantidadProductos }, () => ({ nombre: '', fechaVencimiento: '', proveedor: '' })));
   };
 
   const manejarSubmit = (event) => {
     event.preventDefault();
-    alert(`Cantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Envío exitoso!',
+      text: `Cantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
+    });
   };
 
   return (
     <div className="App">
       <div className='mainform'>
-        <form onSubmit={manejarValidacion}>
+        <form className='company-form' onSubmit={manejarValidacion}>
           <label htmlFor='nomempresa'>Nombre de la empresa</label>
-          <input type='text' id='nomempresa' ></input>
+          <input type='text' id='nomempresa' name='nomempresa' required />
 
           <label htmlFor='nitempresa'>Nit de la empresa</label>
-          <input type="number" id='nitempresa' ></input>
+          <input type="number" id='nitempresa' name='nitempresa' required />
 
           <label htmlFor='emailempresa'>Correo de la empresa</label>
-          <input type='email' id='emailempresa' ></input>
+          <input type='email' id='emailempresa' name='emailempresa' required />
 
           <label htmlFor='fecha'>Fecha Actual</label>
-          <input type='date' id='fecha' ></input>
+          <input type='date' id='fecha' name='fecha' required />
 
-          <label htmlFor='nompersona'>Nombre del reportador</label>
-          <input type='text' id='nompersona' ></input>
+          <label htmlFor='nompersona'>Nombre del repartidor</label>
+          <input 
+            type='text' 
+            id='nompersona' 
+            name='nompersona' 
+            onChange={(e) => {
+              if (!validarNombre(e.target.value)) {
+                e.target.setCustomValidity("Por favor ingrese solo letras y espacios.");
+              } else {
+                e.target.setCustomValidity("");
+              }
+            }}
+            required 
+          />
 
           <label htmlFor='cantproductos'>Cantidad de productos</label>
           <input 
             type='number' 
             id='cantproductos' 
+            name='cantproductos'
             onChange={manejarCambioCantidad}
-          ></input>
-          <button type="submit">Validar</button>
+            required
+          />
+          <button className="boton" type="submit">Validar</button>
         </form>
       </div>
       {mostrarFormularios && (
-        <div className='product_form'>
-          {Array.from({ length: cantidadProductos }, (_, index) => (
-            <form key={index} onSubmit={manejarSubmit}>
-              <label htmlFor={`nomprod-${index}`}>Nombre del producto</label>
-              <input
-                type='text'
-                id={`nomprod-${index}`}
-                name='nombre'
-                value={productos[index]?.nombre || ''}
-                onChange={(event) => manejarCambioProducto(index, event)}
-              ></input>
+        <div className='product_forms_container'>
+          {productos.map((producto, index) => (
+            <div className='product_form' key={index}>
+              <form onSubmit={(e) => manejarSubmit(e, index)}>
+                <label htmlFor={`nombre-${index}`}>Nombre del Producto</label>
+                <input 
+                  type='text' 
+                  id={`nombre-${index}`}
+                  name='nombre'
+                  onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
+                  value={producto.nombre}
+                  required
+                />
 
-              <label htmlFor={`fechaven-${index}`}>Fecha de vencimiento</label>
-              <input
-                type='date'
-                id={`fechaven-${index}`}
-                name='fechaVencimiento'
-                value={productos[index]?.fechaVencimiento || ''}
-                onChange={(event) => manejarCambioProducto(index, event)}
-              ></input>
+                <label htmlFor={`fechaVencimiento-${index}`}>Fecha de Vencimiento</label>
+                <input 
+                  type='date' 
+                  id={`fechaVencimiento-${index}`}
+                  name='fechaVencimiento'
+                  value={producto.fechaVencimiento}
+                  onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
+                  required
+                />
 
-              <label htmlFor={`proveedor-${index}`}>Proveedor del producto</label>
-              <input
-                type='text'
-                id={`proveedor-${index}`}
-                name='proveedor'
-                value={productos[index]?.proveedor || ''}
-                onChange={(event) => manejarCambioProducto(index, event)}
-              ></input>
-            </form>
+                <label htmlFor={`proveedor-${index}`}>Proveedor</label>
+                <input 
+                  type='text' 
+                  id={`proveedor-${index}`}
+                  name='proveedor'
+                  onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
+                  value={producto.proveedor}
+                  required
+                />
+              </form>
+            </div>
           ))}
-          <button onClick={manejarSubmit}>Registrar Informe</button>
+          <button className="boton" onClick={manejarSubmit} disabled={!todosLosCamposLlenos}>Enviar Todo</button>
         </div>
       )}
     </div>
