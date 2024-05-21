@@ -1,4 +1,10 @@
+const conn = require("../model/conn").promise();
 
-function validarFormularios(req,res){
-
-}
+const validarFormularios = async (req,res)=>{
+    try {
+        const {nomempresa,nitempresa,emailempresa,fecha,nompersona,cantproductos,productos}=req.body
+        console.log(req.body)
+    } catch (error) {
+        
+    }
+};
