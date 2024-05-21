@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import axios from 'axios';
 import Swal from 'sweetalert2';
+import axios from 'axios'
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 function App() {
   const [cantidadProductos, setCantidadProductos] = useState(0);
   const [productos, setProductos] = useState([]);
   const [mostrarFormularios, setMostrarFormularios] = useState(false);
   const [todosLosCamposLlenos, setTodosLosCamposLlenos] = useState(false);
-  const [empresa, setEmpresa] = useState({
+  const [datosEmpresa, setDatosEmpresa] = useState({
     nomempresa: '',
     nitempresa: '',
     emailempresa: '',
@@ -46,8 +48,8 @@ function App() {
 
   const manejarCambioEmpresa = (event) => {
     const { name, value } = event.target;
-    setEmpresa(prevState => ({
-      ...prevState,
+    setDatosEmpresa(prevDatos => ({
+      ...prevDatos,
       [name]: value
     }));
   };
@@ -56,12 +58,13 @@ function App() {
     event.preventDefault();
     if (cantidadProductos <= 0) {
       Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Debe ingresar un número mayor a 0"
+        icon: 'error',
+        title: 'Oops...',
+        text: 'La cantidad de productos debe ser mayor a cero.'
       });
       return;
     }
+
     // Obtenemos todos los elementos del formulario excepto los botones de envío
     const inputs = [...event.target.elements].filter(element => element.type !== 'submit');
     // Verificar que ningún campo esté vacío
@@ -78,20 +81,51 @@ function App() {
     setProductos(Array.from({ length: cantidadProductos }, () => ({ nombre: '', fechaVencimiento: '', proveedor: '' })));
   };
 
+  const generarPDF = () => {
+    const doc = new jsPDF();
+
+    // Agregar título
+    doc.setFontSize(18);
+    doc.text('Informe de la Empresa', 10, 10);
+
+    // Datos de la empresa en tabla
+    doc.autoTable({
+      startY: 20,
+      body: [
+        ['Nombre de la empresa', datosEmpresa.nomempresa],
+        ['NIT de la empresa', datosEmpresa.nitempresa],
+        ['Correo de la empresa', datosEmpresa.emailempresa],
+        ['Fecha', datosEmpresa.fecha],
+        ['Nombre del repartidor', datosEmpresa.nompersona]
+      ]
+    });
+
+    // Agregar espacio antes de la tabla de productos
+    const lastPos = doc.previousAutoTable.finalY + 10;
+
+    // Tabla de productos
+    doc.autoTable({
+      startY: lastPos,
+      head: [['Nombre del Producto', 'Fecha de Vencimiento', 'Proveedor']],
+      body: productos.map(producto => [producto.nombre, producto.fechaVencimiento, producto.proveedor])
+    });
+
+    doc.save('informe.pdf');
+  };
+
   const manejarSubmit = async (event) => {
     event.preventDefault();
-    const datos = {
-      empresa,
+    const datos={
+      datosEmpresa,
       productos
-    };
-
+    }
     try {
       const respuesta = await axios.post("http://localhost:4000/registro", datos);
       console.log('Respuesta del servidor:', respuesta.data);
       Swal.fire({
         icon: 'success',
         title: '¡Envío exitoso!',
-        text: `Datos de la Empresa: ${JSON.stringify(empresa, null, 2)}\nCantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
+        text: `Datos de la Empresa: ${JSON.stringify(datosEmpresa, null, 2)}\nCantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
       });
     } catch (error) {
       console.log("Hubo un error:", error);
@@ -101,6 +135,15 @@ function App() {
         text: 'Hubo un problema al enviar los datos.'
       });
     }
+    Swal.fire({
+      icon: 'success',
+      title: '¡Envío exitoso!',
+      text: 'El informe se ha generado con éxito.',
+      didClose: () => {
+        generarPDF();
+      }
+    });
+
   };
 
   return (
@@ -108,16 +151,44 @@ function App() {
       <div className='mainform'>
         <form className='company-form' onSubmit={manejarValidacion}>
           <label htmlFor='nomempresa'>Nombre de la empresa</label>
-          <input type='text' id='nomempresa' name='nomempresa' onChange={manejarCambioEmpresa} required />
+          <input 
+            type='text' 
+            id='nomempresa' 
+            name='nomempresa' 
+            onChange={manejarCambioEmpresa} 
+            value={datosEmpresa.nomempresa} 
+            required 
+          />
 
           <label htmlFor='nitempresa'>Nit de la empresa</label>
-          <input type="number" id='nitempresa' name='nitempresa' onChange={manejarCambioEmpresa} required />
+          <input 
+            type="number" 
+            id='nitempresa' 
+            name='nitempresa' 
+            onChange={manejarCambioEmpresa} 
+            value={datosEmpresa.nitempresa} 
+            required 
+          />
 
           <label htmlFor='emailempresa'>Correo de la empresa</label>
-          <input type='email' id='emailempresa' name='emailempresa' onChange={manejarCambioEmpresa} required />
+          <input 
+            type='email' 
+            id='emailempresa' 
+            name='emailempresa' 
+            onChange={manejarCambioEmpresa} 
+            value={datosEmpresa.emailempresa} 
+            required 
+          />
 
           <label htmlFor='fecha'>Fecha Actual</label>
-          <input type='date' id='fecha' name='fecha' onChange={manejarCambioEmpresa} required />
+          <input 
+            type='date' 
+            id='fecha' 
+            name='fecha' 
+            onChange={manejarCambioEmpresa} 
+            value={datosEmpresa.fecha} 
+            required 
+          />
 
           <label htmlFor='nompersona'>Nombre del reportador</label>
           <input 
@@ -132,6 +203,7 @@ function App() {
                 e.target.setCustomValidity("");
               }
             }}
+            value={datosEmpresa.nompersona}
             required 
           />
 
@@ -151,7 +223,7 @@ function App() {
           {productos.map((producto, index) => (
             <div className='product_form' key={index}>
               <form>
-                <label htmlFor={`nombre-${index}`}>Nombre del Producto {index + 1}</label>
+                <label htmlFor={`nombre-${index}`}>Nombre del Producto</label>
                 <input 
                   type='text' 
                   id={`nombre-${index}`}
