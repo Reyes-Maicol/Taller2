@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import axios from 'axios';
 import Swal from 'sweetalert2';
 
 function App() {
@@ -7,9 +8,16 @@ function App() {
   const [productos, setProductos] = useState([]);
   const [mostrarFormularios, setMostrarFormularios] = useState(false);
   const [todosLosCamposLlenos, setTodosLosCamposLlenos] = useState(false);
+  const [empresa, setEmpresa] = useState({
+    nomempresa: '',
+    nitempresa: '',
+    emailempresa: '',
+    fecha: '',
+    nompersona: ''
+  });
 
   useEffect(() => {
-    // Verificar si todos los campos están llenos
+    // Verificar si todos los campos de los productos están llenos
     const todosLlenos = productos.every(producto => producto.nombre && producto.fechaVencimiento && producto.proveedor);
     setTodosLosCamposLlenos(todosLlenos);
   }, [productos]);
@@ -36,14 +44,23 @@ function App() {
     setProductos(nuevosProductos);
   };
 
+  const manejarCambioEmpresa = (event) => {
+    const { name, value } = event.target;
+    setEmpresa(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
   const manejarValidacion = (event) => {
     event.preventDefault();
-    if(cantidadProductos <=0){
+    if (cantidadProductos <= 0) {
       Swal.fire({
-        icon:"error",
-        title:"Error",
-        text:"Debe ingresar un numero mayor a 0"
-      })
+        icon: "error",
+        title: "Error",
+        text: "Debe ingresar un número mayor a 0"
+      });
+      return;
     }
     // Obtenemos todos los elementos del formulario excepto los botones de envío
     const inputs = [...event.target.elements].filter(element => element.type !== 'submit');
@@ -61,13 +78,29 @@ function App() {
     setProductos(Array.from({ length: cantidadProductos }, () => ({ nombre: '', fechaVencimiento: '', proveedor: '' })));
   };
 
-  const manejarSubmit = (event) => {
+  const manejarSubmit = async (event) => {
     event.preventDefault();
-    Swal.fire({
-      icon: 'success',
-      title: '¡Envío exitoso!',
-      text: `Cantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
-    });
+    const datos = {
+      empresa,
+      productos
+    };
+
+    try {
+      const respuesta = await axios.post("http://localhost:4000/registrar", datos);
+      console.log('Respuesta del servidor:', respuesta.data);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Envío exitoso!',
+        text: `Datos de la Empresa: ${JSON.stringify(empresa, null, 2)}\nCantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
+      });
+    } catch (error) {
+      console.log("Hubo un error:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Hubo un problema al enviar los datos.'
+      });
+    }
   };
 
   return (
@@ -75,16 +108,16 @@ function App() {
       <div className='mainform'>
         <form className='company-form' onSubmit={manejarValidacion}>
           <label htmlFor='nomempresa'>Nombre de la empresa</label>
-          <input type='text' id='nomempresa' name='nomempresa' required />
+          <input type='text' id='nomempresa' name='nomempresa' onChange={manejarCambioEmpresa} required />
 
           <label htmlFor='nitempresa'>Nit de la empresa</label>
-          <input type="number" id='nitempresa' name='nitempresa' required />
+          <input type="number" id='nitempresa' name='nitempresa' onChange={manejarCambioEmpresa} required />
 
           <label htmlFor='emailempresa'>Correo de la empresa</label>
-          <input type='email' id='emailempresa' name='emailempresa' required />
+          <input type='email' id='emailempresa' name='emailempresa' onChange={manejarCambioEmpresa} required />
 
           <label htmlFor='fecha'>Fecha Actual</label>
-          <input type='date' id='fecha' name='fecha' required />
+          <input type='date' id='fecha' name='fecha' onChange={manejarCambioEmpresa} required />
 
           <label htmlFor='nompersona'>Nombre del reportador</label>
           <input 
@@ -92,6 +125,7 @@ function App() {
             id='nompersona' 
             name='nompersona' 
             onChange={(e) => {
+              manejarCambioEmpresa(e);
               if (!validarNombre(e.target.value)) {
                 e.target.setCustomValidity("Por favor ingrese solo letras y espacios.");
               } else {
@@ -116,8 +150,8 @@ function App() {
         <div className='product_forms_container'>
           {productos.map((producto, index) => (
             <div className='product_form' key={index}>
-              <form onSubmit={(e) => manejarSubmit(e, index)}>
-                <label htmlFor={`nombre-${index}`}>Nombre del Producto {index+1}</label>
+              <form>
+                <label htmlFor={`nombre-${index}`}>Nombre del Producto {index + 1}</label>
                 <input 
                   type='text' 
                   id={`nombre-${index}`}
