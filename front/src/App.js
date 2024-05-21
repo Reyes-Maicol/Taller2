@@ -117,9 +117,11 @@ function App() {
     event.preventDefault();
     const datos={
       datosEmpresa,
+      cantidadProductos,
       productos
     }
     try {
+      console.log(datos)
       const respuesta = await axios.post("http://localhost:4000/registro", datos);
       console.log('Respuesta del servidor:', respuesta.data);
       Swal.fire({
