@@ -86,7 +86,7 @@ function App() {
     };
 
     try {
-      const respuesta = await axios.post("http://localhost:4000/registrar", datos);
+      const respuesta = await axios.post("http://localhost:4000/registro", datos);
       console.log('Respuesta del servidor:', respuesta.data);
       Swal.fire({
         icon: 'success',
