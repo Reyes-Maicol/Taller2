@@ -8,3 +8,4 @@ const validarFormularios = async (req,res)=>{
         
     }
 };
+module.exports = {validarFormularios}

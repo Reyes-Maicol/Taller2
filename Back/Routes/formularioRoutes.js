@@ -1,9 +1,8 @@
 const express = require('express');
-const formularios = require('../Controller/validarFormularios');
+const formulariosController = require('../Controller/validarFormularios');
 const formuRutas = express.Router();
 
-
-
+formuRutas.post("/registro",formulariosController.validarFormularios);
 
 
 module.exports= formuRutas;
