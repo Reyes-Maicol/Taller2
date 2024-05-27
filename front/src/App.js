@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import Swal from 'sweetalert2';
-import axios from 'axios'
+import axios from 'axios';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, Shading } from 'docx';
+import { saveAs } from 'file-saver';
 
 function App() {
   const [cantidadProductos, setCantidadProductos] = useState(0);
@@ -17,9 +19,9 @@ function App() {
     fecha: '',
     nompersona: ''
   });
+  const [mostrarBotones, setMostrarBotones] = useState(false); // Nuevo estado
 
   useEffect(() => {
-    // Verificar si todos los campos de los productos están llenos
     const todosLlenos = productos.every(producto => producto.nombre && producto.fechaVencimiento && producto.proveedor);
     setTodosLosCamposLlenos(todosLlenos);
   }, [productos]);
@@ -29,16 +31,12 @@ function App() {
     setCantidadProductos(cantidad);
   };
 
-  const validarNombre = (nombre) => {
-    // Permitir letras (mayúsculas y minúsculas), espacios y cadena vacía
-    return /^[a-zA-Z\s]*$/.test(nombre);
-  };
+  const validarNombre = (nombre) => /^[a-zA-Z\s]*$/.test(nombre);
 
   const manejarCambioProducto = (index, name, value) => {
-    // Si el campo es 'nombre' o 'nompersona' o 'proveedor', validamos que solo contenga letras
     if (name === 'nombre' || name === 'nompersona' || name === 'proveedor') {
       if (!validarNombre(value)) {
-        return; // Si no es válido, no actualizamos el estado
+        return;
       }
     }
     const nuevosProductos = [...productos];
@@ -65,9 +63,7 @@ function App() {
       return;
     }
 
-    // Obtenemos todos los elementos del formulario excepto los botones de envío
     const inputs = [...event.target.elements].filter(element => element.type !== 'submit');
-    // Verificar que ningún campo esté vacío
     const inputsValidos = inputs.every(input => input.value.trim() !== '');
     if (!inputsValidos) {
       Swal.fire({
@@ -83,12 +79,9 @@ function App() {
 
   const generarPDF = () => {
     const doc = new jsPDF();
-
-    // Agregar título
     doc.setFontSize(18);
     doc.text('Informe de la Empresa', 10, 10);
 
-    // Datos de la empresa en tabla
     doc.autoTable({
       startY: 20,
       body: [
@@ -100,10 +93,8 @@ function App() {
       ]
     });
 
-    // Agregar espacio antes de la tabla de productos
     const lastPos = doc.previousAutoTable.finalY + 10;
 
-    // Tabla de productos
     doc.autoTable({
       startY: lastPos,
       head: [['Nombre del Producto', 'Fecha de Vencimiento', 'Proveedor']],
@@ -113,15 +104,159 @@ function App() {
     doc.save('informe.pdf');
   };
 
+  const generarWord = () => {
+    const tableHeaderStyle = {
+      font: { bold: true },
+      Shading:{fill:"blue"},
+      color: 'FFFFFF',
+      width: { size: 5000, type: 'DXA' }
+    };
+  
+    const cellStyle = {
+      borders: {
+        top: { size: 1, color: '000000' },
+        bottom: { size: 1, color: '000000' },
+        left: { size: 1, color: '000000' },
+        right: { size: 1, color: '000000' },
+      },
+      width: { size: 5000, type: 'DXA' }
+    };
+  
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              text: 'Informe de la Empresa',
+              heading: 'Title',
+              thematicBreak: true,
+            }),
+            new Table({
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('Nombre de la empresa')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(datosEmpresa.nomempresa)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('NIT de la empresa')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(datosEmpresa.nitempresa)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('Correo de la empresa')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(datosEmpresa.emailempresa)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('Fecha')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(datosEmpresa.fecha)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('Nombre del repartidor')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(datosEmpresa.nompersona)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new Paragraph({
+              text: 'Productos',
+              heading: 'Heading1',
+              thematicBreak: true,
+            }),
+            new Table({
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph('Nombre del Producto')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph('Fecha de Vencimiento')],
+                      ...tableHeaderStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph('Proveedor')],
+                      ...tableHeaderStyle,
+                    }),
+                  ],
+                }),
+                ...productos.map(producto => new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph(producto.nombre)],
+                      ...cellStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(producto.fechaVencimiento)],
+                      ...cellStyle,
+                    }),
+                    new TableCell({
+                      children: [new Paragraph(producto.proveedor)],
+                      ...cellStyle,
+                    }),
+                  ],
+                }))
+              ],
+            })
+          ]
+        }
+      ]
+    });
+  
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, 'informe.docx');
+    });
+  };
+  
+
   const manejarSubmit = async (event) => {
     event.preventDefault();
-    const datos={
+    const datos = {
       datosEmpresa,
       cantidadProductos,
       productos
-    }
+    };
+
     try {
-      console.log(datos)
+      console.log(datos);
       const respuesta = await axios.post("http://localhost:4000/registro", datos);
       console.log('Respuesta del servidor:', respuesta.data);
       Swal.fire({
@@ -129,6 +264,7 @@ function App() {
         title: '¡Envío exitoso!',
         text: `Datos de la Empresa: ${JSON.stringify(datosEmpresa, null, 2)}\nCantidad de productos: ${cantidadProductos}\nProductos: ${JSON.stringify(productos, null, 2)}`
       });
+      setMostrarBotones(true); // Mostrar los botones
     } catch (error) {
       console.log("Hubo un error:", error);
       Swal.fire({
@@ -136,16 +272,8 @@ function App() {
         title: 'Error',
         text: 'Hubo un problema al enviar los datos.'
       });
+      setMostrarBotones(false); // Asegurarse de que los botones no se muestren si hay un error
     }
-    Swal.fire({
-      icon: 'success',
-      title: '¡Envío exitoso!',
-      text: 'El informe se ha generado con éxito.',
-      didClose: () => {
-        generarPDF();
-      }
-    });
-
   };
 
   return (
@@ -209,14 +337,16 @@ function App() {
             required 
           />
 
-          <label htmlFor='cantproductos'>Cantidad de productos</label>
+          <label htmlFor='cantidad'>Cantidad de productos</label>
           <input 
             type='number' 
-            id='cantproductos' 
-            name='cantproductos'
-            onChange={manejarCambioCantidad}
-            required
+            id='cantidad' 
+            name='cantidad' 
+            onChange={manejarCambioCantidad} 
+            value={cantidadProductos} 
+            required 
           />
+
           <button className="boton" type="submit">Validar</button>
         </form>
       </div>
@@ -225,30 +355,30 @@ function App() {
           {productos.map((producto, index) => (
             <div className='product_form' key={index}>
               <form>
-                <label htmlFor={`nombre-${index}`}>Nombre del Producto</label>
-                <input 
-                  type='text' 
-                  id={`nombre-${index}`}
+                <label htmlFor={`nombre_${index}`}>Nombre del Producto</label>
+                <input
+                  type='text'
+                  id={`nombre_${index}`}
                   name='nombre'
                   onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
                   value={producto.nombre}
                   required
                 />
 
-                <label htmlFor={`fechaVencimiento-${index}`}>Fecha de Vencimiento</label>
-                <input 
-                  type='date' 
-                  id={`fechaVencimiento-${index}`}
+                <label htmlFor={`fechaVencimiento_${index}`}>Fecha de Vencimiento</label>
+                <input
+                  type='date'
+                  id={`fechaVencimiento_${index}`}
                   name='fechaVencimiento'
-                  value={producto.fechaVencimiento}
                   onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
+                  value={producto.fechaVencimiento}
                   required
                 />
 
-                <label htmlFor={`proveedor-${index}`}>Proveedor</label>
-                <input 
-                  type='text' 
-                  id={`proveedor-${index}`}
+                <label htmlFor={`proveedor_${index}`}>Proveedor</label>
+                <input
+                  type='text'
+                  id={`proveedor_${index}`}
                   name='proveedor'
                   onChange={(e) => manejarCambioProducto(index, e.target.name, e.target.value)}
                   value={producto.proveedor}
@@ -258,6 +388,12 @@ function App() {
             </div>
           ))}
           <button className="boton" onClick={manejarSubmit} disabled={!todosLosCamposLlenos}>Enviar Todo</button>
+          {mostrarBotones && (
+            <div>
+              <button className="boton" onClick={generarPDF}>Generar PDF</button>
+              <button className="boton" onClick={generarWord}>Generar Word</button>
+            </div>
+          )}
         </div>
       )}
     </div>
